@@ -1,0 +1,28 @@
+# Configuration file for MCP File Server
+allowed_directories:
+  - "/tmp"
+  - "/var/data"
+
+rate_limit:
+  daily_requests: 1000
+
+# Database configuration
+database:
+  user_db_path: "/shared/users.db"  # Path to shared user database (managed externally)
+  usage_db_path: "data/usage.db"    # Path to usage tracking database
+
+# Admin users identified by username (not token)
+admin_users:
+  - "admin"
+
+# SSL/TLS Configuration for HTTPS
+ssl:
+  enabled: false  # Set to true to enable HTTPS
+  certfile: "/etc/ssl/certs/server.crt"  # Path to SSL certificate file
+  keyfile: "/etc/ssl/private/server.key"  # Path to SSL private key file
+  ssl_version: 17  # SSL version (17 = PROTOCOL_TLS_SERVER - modern TLS)
+
+# Server configuration
+server:
+  host: "0.0.0.0"
+  port: 3001

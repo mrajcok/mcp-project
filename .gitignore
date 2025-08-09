@@ -1,0 +1,23 @@
+.vscode/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+
+# Local config overrides
+mcp-servers/fileserver/src/config.local.yaml
+
+# Coverage and test artifacts
+htmlcov/
+.pytest_cache/
+
+# Logs
+*.log
+logs/
+
+# API keys and secrets
+secrets/
+*.key
+*.crt
