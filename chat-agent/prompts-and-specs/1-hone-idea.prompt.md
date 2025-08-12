@@ -1,7 +1,7 @@
 ---
 mode: ask
 model: GPT-5 (Preview)
-description: 'interact with me to help hone an idea and generate a detailed specification for a developer'
+description: 'interact with me to help hone an idea'
 ---
 You are an expert systems engineer that is very knowledgeable about the following:
 - Model Context Protocol (MCP) 
@@ -18,14 +18,13 @@ You will not make any assumptions about the idea or the specification. You will 
 
 The idea is to create a AI agent web application that is also an MCP host that implements MCP clients to connect to MCP servers.
 All MCP clients will connect to MCP servers using the HTTP transport, secured for both local development and Docker Swarm deployment.
-A list of MCP servers will be provided in the configuration YAML file, and the agent will connect to them as needed.
-The home page of the web application will indicate the connection status of each MCP server and the tools available on each server.
+A list of MCP servers will be provided in a configuration YAML file, and the agent or LLM will connect to them as needed.
 The AI agent will also be able to interact with a (configured) large language model (LLM) using its API to help it determine which MCP servers to use to perform actions and retrieve data.
 
-The user can use natural language to interact with the agent, and the agent will use the configured LLM to help it determine which MCP servers to use to perform actions and retrieve data.
-The user can also use #tool_name to invoke a specific tool on a specific MCP server, such as #read_text_file or #create_file.
+The user can use natural language to interact with the agent, and the agent will use the configured LLM to help it determine which (if any) MCP server tools to use to help satisfy the request/chat. If any MCP server tools are used, the agent response must indicate which tools were used.
+The user can also use #tool_name in the chat to invoke a specific tool on a specific MCP server, such as #read_text_file or #create_file.
 
-The application will have a web interface where users can chat with the agent. 
+The application will have a web interface where users can chat with the agent.
 The agent will default to using the OpenAI API as its LLM.
 
 If the user is not logged in, a login page will be displayed.
@@ -33,13 +32,16 @@ Users will authenticate with the application with a username and LDAP password.
 LDAP password verification should be mocked for local development, but in production the LDAP server will be a corporate LDAP server.
 In addition, the user must be in the application's configuration YAML file (e.g., config authorized_users) in order to be granted access to the application.
 Once a user is authenticated, a token is generated and stored in an sqlite database associated with the user, if a token does not already exist for the user.
-The token is a bearer token that is included in every request sent to an MCP server, used for authentication with the MCP server.
-Once a user authenticates, a session is also created for the user, backed by the sqlite database.
+The token is a bearer token that is included in every request sent to each MCP server, used for authentication with every MCP server.
+Once a user is authenticated, a session is also created for the user, backed by the sqlite database.
 
-The application will log all chat messages the user sent to the agent in the database.
-The user can view their chat history, paginated, in the web interface.
-Chat messages will be stored for a limited (configurable) time, such as 180 days, and then deleted.
-If a chat message causes any MCP server actions, the application will log the actions along with the chat in the in the database.
+A user can create a new chat session and switch between chat sessions.
+Chat sessions have a creation date, a date that records the last activity, and an optional description. Chat history will be stored for a limited (configurable) time after the last activity, such as 180 days, and then be deleted.
+The user can delete chat sessions.
+
+The application will log all chat messages and agent responses in the database by user, date-time and chat session.
+If a chat results in any MCP server tools being called, the application will store the MCP server actions along with the chat in the database.
+The user can view their chat session history, likely paginated or with infinite scroll (TBD), in the web interface.
 
 The application will rate limit each user's chat messages to prevent abuse, denial of service attacks, and other malicious behavior.
 The rate limit will be configurable, such as 10 messages per minute, and will be enforced by the application.
@@ -50,7 +52,7 @@ The application will also log the rate limit violation in the database.
 
 The web interface should have a nav bar with the following links:
 - Chat Agent: the home page of the application
-- History: The chat history page where the user can view their chat history, paginated.
+- History: The chat history page where the user can view their chat sessions and the history of each session, paginated or infinite scroll (TBD).
 - Admin (if the user is an administrator): The admin page where the user can view usage statistics and graphs.
 - username: The username of the authenticated user.
 - Logout: Log out of the application.
@@ -68,9 +70,9 @@ Administrators will have access to an admin page in the web application where th
 - other graphs as needed
 Administrators will have a nav bar at the top of the page to view the admin page.
 
-All user logins, chat messages and calls to the LLM and MCP servers will be logged to stdout, since in production the application will be running in a Docker container.
+All user logins, logouts, chat messages and calls to the LLM and MCP servers will be logged to stdout, since in production the application will be running in a Docker container.
 
-All of what follows will be part of the specification that will be generated, and this information does not need to be refined further while helping me hone the idea.
+All that follows will be part of the specification that will be generated, and this information proably does not need to be refined further while helping me hone the idea.
 
 Technology stack:
 - Python 3.12 virtual environment for dependencies
@@ -82,9 +84,12 @@ Technology stack:
 - Docker for containerization and deployment
 - Dash 3.x for the web interface, https://dash.plotly.com
   - The web interface should use server-sent events (SSE) to stream responses from the agent to the web client.
+  - The dash application will use multi-page layout to separate the different pages.
+  - Dash bootstrap, Mantine, and CSS Tailwind (as appropriate) for UI components and styling the web interface
   - Flask-Session with Flask-SQLAlchemy for session management and general state management, https://flask-session.readthedocs.io/en/latest/
 
 Implementation details:
+- the application will be in directory chat-agent
 - YAML file for configuration, such as the list of directories that the server is
 allowed access to.
 - run.sh script for quick start local development
