@@ -249,13 +249,6 @@ Additionally:
   - `success` (boolean)
   - `error_message` (text, if any)
 
-- **admin_actions** (optional or part of general logs)
-  - `id` (PK)
-  - `admin_id` (FK → users.id)
-  - `action_type` (string) — e.g., force_logout
-  - `target_user_id` (FK → users.id, nullable)
-  - `timestamp` (datetime)
-
 (Other tables/columns for logs, session data, or usage stats may also be added as needed.)
 
 ## 4.2 Retention Logic

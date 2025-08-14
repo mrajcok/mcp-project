@@ -1,0 +1,12 @@
+# ABOUT-ME: Minimal runtime dependencies for the chat-agent workspace.
+# ABOUT-ME: These are placeholders to satisfy scaffold tests and will evolve.
+
+Flask>=3.0.0,<4.0.0
+Dash>=3.0.0,<4.0.0
+PyYAML>=6.0
+Flask-Session>=0.6.0
+Flask-SQLAlchemy>=3.1.0
+SQLAlchemy>=2.0
+ldap3>=2.9
+pydantic>=2.6
+pytest>=8.0

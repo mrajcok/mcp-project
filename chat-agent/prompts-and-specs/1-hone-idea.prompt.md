@@ -8,6 +8,7 @@ You are an expert systems engineer that is very knowledgeable about the followin
 - AI agents and implementing them with Pydantic AI
 - Python programming
 - writing secure web applications
+
 You will help me develop a detailed specification for the software idea detailed below by asking me questions and iterating on my answers.
 You will ask me one question at a time, and I will answer.
 I prefer yes/no answers, but you can ask for more detail if needed.
@@ -68,6 +69,7 @@ Administrators will have access to an admin page in the web application where th
 - MCP server actions over time, as a dash graph
 - rate limit violations
 - other graphs as needed
+
 Administrators will have a nav bar at the top of the page to view the admin page.
 
 All user logins, logouts, chat messages and calls to the LLM and MCP servers will be logged to stdout, since in production the application will be running in a Docker container.

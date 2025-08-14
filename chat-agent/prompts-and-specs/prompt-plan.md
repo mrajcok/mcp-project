@@ -1,25 +1,15 @@
-
-Each of these “(nA) Test” and “(nB) Implementation” tasks will be a pair of prompts.
-
----
-
 ## **TDD Prompts**
-
-Below is an example TDD workflow for each chunk. **Each step has two prompts**: one for the test (written in detail), and one for the implementation. The code-generation LLM will first see the test prompt, generate test code, and then (once that test code is validated or reviewed) see the implementation prompt to produce the solution.
-
-Below is the raw Markdown for all prompts.  
-> **Note**: The actual structure in your own project might vary slightly. But this is the recommended style for incremental TDD with separate test/implementation prompts.
 
 ---
 
 ### 1) Foundation & Repo
 
 ```text
-# Prompt (1A) Test: Initialize Project Structure
+# Prompt (1A) Test: Initialize Project Structure [COMPLETED]
 
 **Objective**: Write a test that checks if the project structure is in place:
-1. "chat_agent/" directory exists
-2. There's a minimal "main.py" or similar inside.
+1. "chat-agent/" directory exists
+2. There's a minimal entrypoint under "src/" such as "main.py".
 3. There's a "requirements.txt" or "pyproject.toml" with minimal dependencies.
 
 **Details**:
@@ -27,24 +17,28 @@ Below is the raw Markdown for all prompts.
 - We'll assume the code generation LLM can run a shell or check the file system.
 
 **What to Test**:
-- That "chat_agent/" is a valid directory.
-- That the minimal file "chat_agent/__init__.py" or "main.py" exists.
+- That "chat-agent/" is a valid directory.
+- That the minimal file "src/__init__.py" or "src/main.py" exists.
 - That "requirements.txt" or "pyproject.toml" references known packages like "Flask" or "Dash".
 
 We can keep the test simple. The point is to ensure scaffolding is generated properly.
 ```
 
 ```text
-# Prompt (1B) Implementation: Initialize Project Structure
+# Prompt (1B) Implementation: Initialize Project Structure [COMPLETED]
 
 **Objective**: Create the basic project skeleton so that the test above passes.
-1. Create "chat_agent/" as a directory.
-2. Place an empty "__init__.py" inside "chat_agent/".
-3. Create a "main.py" with a simple "if __name__ == '__main__': pass".
+The project must use a Python 3.12 virtual environment and have the following:
+1. Use existing "chat-agent/" directory.
+2. Create a "src/" package inside "chat-agent/" with an empty "__init__.py".
+3. Add a "src/main.py" with a simple CLI.
 4. Create a minimal "requirements.txt" or "pyproject.toml" with:
-   - flask
-   - dash
+   - dash 3.x
    - pyyaml (for config)
+   - ldap3 (for LDAP auth)
+   - pydantic (for models)
+   - Flask-Session (for session management)
+   - Flask-SQLAlchemy (for DB)
    - any other minimal libs we foresee
 5. Ensure the repository is initialized with "git init" if needed.
 ```
@@ -54,7 +48,7 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 ### 2) Config Loader
 
 ```text
-# Prompt (2A) Test: Config Parser
+# Prompt (2A) Test: Config Parser [COMPLETED]
 
 **Objective**: Write a unit test for a config parser function, e.g. "load_config(path)".
 **We expect**:
@@ -73,14 +67,14 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 ```
 
 ```text
-# Prompt (2B) Implementation: Config Parser
+# Prompt (2B) Implementation: Config Parser [COMPLETED]
 
 **Objective**: Implement the "load_config(path)" function so that the test passes.
 1. Use "pyyaml" to open and parse the file.
 2. Validate the presence of the required keys.
 3. If missing, raise ValueError with a clear message.
 4. If everything is present, return a dict or a pydantic model (developer choice).
-5. Put this function in "chat_agent/config.py" (for instance).
+5. Put this function in "chat-agent/config.py" (for instance).
 ```
 
 ---
@@ -88,7 +82,7 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 ### 3) Database Setup
 
 ```text
-# Prompt (3A) Test: Database Initialization
+# Prompt (3A) Test: Database Initialization [COMPLETED]
 
 **Objective**: Write a test to ensure we can initialize an SQLite database with minimal schema.
 **We expect**:
@@ -102,10 +96,10 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 ```
 
 ```text
-# Prompt (3B) Implementation: Database Initialization
+# Prompt (3B) Implementation: Database Initialization [COMPLETED]
 
 **Objective**: Implement the DB schema creation code so that the test from (3A) passes.
-1. Create a module "chat_agent/db.py" with an "init_db()" function.
+1. Create a module "chat-agent/db.py" with an "init_db()" function.
 2. Use SQLAlchemy or Flask-SQLAlchemy. 
 3. Define at least one table: "users" with columns "id" (int PK), "username" (string).
 4. The function should create all tables if they don't exist.
@@ -117,11 +111,11 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 ### 4) User Model
 
 ```text
-# Prompt (4A) Test: User Model
+# Prompt (4A) Test: User Model [COMPLETED]
 
 **Objective**: Create a test for a "User" Python class that:
 - Maps to the "users" table
-- Has fields: "id", "username", "lockout_until", "token", etc.
+- Has fields as defined in spec.md.
 - Has methods for CRUD or static constructor "User.create()" or something similar.
 
 **We expect**:
@@ -130,10 +124,10 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 ```
 
 ```text
-# Prompt (4B) Implementation: User Model
+# Prompt (4B) Implementation: User Model [COMPLETED]
 
 **Objective**: Implement the "User" class to pass the above test.
-1. Define a SQLAlchemy model "User" in "chat_agent/models.py".
+1. Define a SQLAlchemy model "User" in "chat-agent/models.py".
 2. Ensure columns match specification: "id", "username", "lockout_until", "token", etc.
 3. Provide a constructor or static method to create and persist the user.
 4. Make sure to integrate with the existing DB session from (3B).
@@ -144,7 +138,7 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 ### 5) LDAP Authentication
 
 ```text
-# Prompt (5A) Test: LDAP Authentication
+# Prompt (5A) Test: LDAP Authentication [COMPLETED]
 
 **Objective**: Test a function "authenticate_user(username, password)" that:
 - Uses a mock LDAP server or a mock in python to simulate success/failure.
@@ -159,7 +153,7 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 ```
 
 ```text
-# Prompt (5B) Implementation: LDAP Authentication
+# Prompt (5B) Implementation: LDAP Authentication [COMPLETED]
 
 **Objective**: Implement "authenticate_user(username, password)".
 1. Load config from "load_config()".
@@ -174,7 +168,7 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 ### 6) Lockout
 
 ```text
-# Prompt (6A) Test: Lockout
+# Prompt (6A) Test: Lockout [COMPLETED]
 
 **Objective**: Test that after 3 failed login attempts for the same user+IP, "lockout_until" is set for 15 minutes in the DB. 
 **We expect**:
@@ -184,7 +178,7 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 ```
 
 ```text
-# Prompt (6B) Implementation: Lockout
+# Prompt (6B) Implementation: Lockout [COMPLETED]
 
 **Objective**: Implement the logic in "authenticate_user" or a wrapper:
 1. Keep track of failed login attempts (e.g., in the DB or in memory).
@@ -199,7 +193,7 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 ### 7) Bearer Token Generation
 
 ```text
-# Prompt (7A) Test: Bearer Token
+# Prompt (7A) Test: Bearer Token [COMPLETED]
 
 **Objective**: Test a function "issue_token(user_id)" that:
 - Generates a random token.
@@ -212,7 +206,7 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 ```
 
 ```text
-# Prompt (7B) Implementation: Bearer Token
+# Prompt (7B) Implementation: Bearer Token [COMPLETED]
 
 **Objective**: Implement the logic in "issue_token(user)" or similar:
 1. Generate a random/opaque string (e.g., "secrets.token_hex(32)").
@@ -226,7 +220,7 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 ### 8) Session & Idle Timeout
 
 ```text
-# Prompt (8A) Test: Idle Timeout
+# Prompt (8A) Test: Idle Timeout [COMPLETED]
 
 **Objective**: Test that tokens expire if not used for 12 hours.
 **We expect**:
@@ -239,7 +233,7 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 ```
 
 ```text
-# Prompt (8B) Implementation: Idle Timeout
+# Prompt (8B) Implementation: Idle Timeout [COMPLETED]
 
 **Objective**: Implement the logic:
 1. Each request includes the user's token → check DB's "last_activity_at".
@@ -295,7 +289,7 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 # Prompt (10B) Implementation: Chat Sessions & Messages
 
 **Objective**: Implement the code so the test passes:
-1. Define models for "chat_sessions" and "chat_messages."
+1. Define models for "chat_sessions" and "chat_messages" as defined in spec.md.
 2. Provide endpoints or function calls to create, list, delete sessions.
 3. A "purge_old_sessions()" function that checks last activity and deletes if 30 days old.
 4. Integrate with DB commits.
@@ -327,7 +321,7 @@ We can keep the test simple. The point is to ensure scaffolding is generated pro
 1. Parse user messages for `#tool_name`.
 2. If LLM asks for a tool that’s in the config list and not user-explicit, require explicit user approval.
 3. Call the target MCP server with `bearer token` in the header.
-4. Truncate output to 100k. Store in "tool_invocations" table.
+4. Truncate output to 100k. Store in "tool_invocations" table as defined in spec.md.
 5. Mark success/failure accordingly.
 ```
 
