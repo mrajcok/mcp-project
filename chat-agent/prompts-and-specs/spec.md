@@ -1,0 +1,377 @@
+# 1. Overview and Goals
+
+This project is an AI Agent web application that simultaneously:
+
+- Hosts an MCP (Multi-Channel Protocol) server environment (via FastMCP 2.0).
+- Provides an HTTP-based MCP client connection to a set of configured MCP servers.
+- Integrates with a Large Language Model (LLM) to determine which MCP tools/servers to invoke.
+- Accepts user input in natural language (via a web interface), possibly referencing MCP tools (e.g., `#read_text_file`).
+- Requires user authentication via LDAP and an internal authorization check.
+- Maintains chat sessions (history stored in SQLite), with the option to use or skip prior context when calling the LLM.
+
+Additionally:
+
+- There is an administrator role that has an admin page for usage metrics.
+- A per-user rate limit (50 operations per minute by default) triggers a global "degraded state" when exceeded, disabling all functionality except login until the application restarts.
+
+### Goals
+
+- Provide a unified chat environment where an LLM can optionally invoke MCP tools on remote servers.
+- Log all significant events (logins, failed logins, chat messages, tool usage, LLM calls) to stdout.
+- Enforce security measures: authentication, TLS, rate limiting, user-approval for certain tool actions, and data retention.
+
+---
+
+# 2. Key Functional Requirements
+
+## 2.1 User Authentication and Authorization
+
+- **LDAP Login**
+  - For local development, LDAP checks can be mocked.
+  - In production, LDAP must connect to a corporate LDAP server.
+  - The user must also appear in the application’s YAML config under `authorized_users`; otherwise, access is denied.
+
+- **Failed Login Lockout**
+  - After 3 failed attempts for a given username and source IP, lock out that username+IP pair for 15 minutes.
+
+- **Token Issuance**
+  - On successful authentication, issue an opaque bearer token (random string, stored in SQLite).
+  - Each user can have only 1 active token at a time (new login invalidates the old one).
+  - The token is used to authenticate with the application and is forwarded to each MCP server in the Authorization header.
+
+- **Idle Timeout**
+  - Token expires if idle for more than 12 hours.
+  - Logging out immediately invalidates the token in the database.
+
+- **Sessions**
+  - A server-side session is also created/stored in SQLite via Flask-Session.
+
+## 2.2 Administrator Role
+
+- Admins are defined in the YAML config as a static list of usernames.
+- An Admin sees an extra "Admin" link in the nav bar.
+- Admin can view usage statistics, graphs, and rate-limit violation events on the Admin page.
+- Admin cannot see other users’ chat history.
+- Admin can force-logout a user, invalidating that user’s bearer token immediately.
+
+## 2.3 Chat Sessions
+
+- Authenticated users can create any number of chat sessions (no hard limit).
+- Each session has:
+  - Creation date, last activity date, optional description/title.
+- Chat history is stored in SQLite, with messages timestamped.
+- **Retention**: default 30 days from last activity. Afterward, automatically delete.
+- Users can rename or delete (hard-delete) entire chat sessions.
+- Chat sessions and their messages are private to the owning user.
+
+## 2.4 Rate Limiting and Degraded State
+
+- **Per-user rate limit**: 50 operations per 60-second window (1 operation = 1 LLM call or 1 tool invocation).
+- Any user exceeding their limit triggers a global degraded state.
+  - In this state, only the login endpoint remains accessible; all other encounters get an HTTP 429.
+  - The application remains degraded until manually restarted.
+- Violation log entry is written once upon entering degraded state.
+
+## 2.5 Concurrency Limit
+
+- Each user can have at most 3 concurrent in-flight chat requests (LLM calls + tool invocations).
+- If the user attempts a 4th request while 3 are still active, reject with an error.
+
+## 2.6 Tool Invocations
+
+- The AI Agent may propose MCP tool usage implicitly.
+- Certain write/modify/delete tools require user confirmation if the LLM wants to invoke them.
+  - However, if the user explicitly invokes via `#tool_name`, no confirmation is needed.
+- If multiple tools are invoked in one message and one fails, the rest are not executed (fail fast).
+- A single chat message can only invoke up to 20 tools; if exceeded, reject the message.
+
+## 2.7 MCP Server Integration
+
+- Static list of MCP servers in the YAML config (restarts required to change it).
+- Use HTTP + mTLS in production; local dev can skip or self-sign.
+- use streamable HTTP with FastMCP
+- The user’s bearer token is forwarded in Authorization header to each MCP server.
+- Each server is assumed to validate the token (shared database or callback check).
+- On startup, the app attempts to connect to each MCP server and logs any failures. Does not abort startup.
+
+## 2.8 Large Language Model (LLM) Usage
+
+- Uses Pydantic AI (wrapping the OpenAI API).
+- A single fixed model selection in the YAML config.
+- The LLM calls are stateless per user message (no conversation context is fed back).
+- Each LLM call is 1 operation for rate limiting; each tool call is another operation.
+- If the LLM proposes a tool that is on `confirmation_required_tools`, the user is prompted for confirmation unless invoked explicitly with `#tool_name`.
+
+## 2.9 Chat History Storage & Display
+
+- Each user message and the AI’s response are stored in SQLite.
+- Tool outputs are stored but truncated to 100,000 characters (configurable).
+- Users can view their history but the agent does not rely on it for next queries (stateless).
+- Users can optionally search their own chat archives (simple substring or TBD).
+
+## 2.10 Web Interface Requirements
+
+- Built with Dash 3.x (Flask under the hood).
+- Possible SSE-based streaming via "FastMCP streamable HTTP" (transport detail is TBD but set to "streamable HTTP with FastMCP").
+- Dark theme only (no light-theme toggle).
+- **Login page** if not authenticated.
+- **Nav bar**:
+  - Chat Agent (home)
+  - History
+  - Admin (only if admin user)
+  - Username
+  - Logout
+- **Main Chat Page**:
+  - Chat input box at the top.
+  - Below it, the AI response area (interleaved user messages and agent responses).
+  - Left side: a panel listing the MCP servers, connection status, and available tools.
+- A banner or status indicator appears if the system is in degraded state.
+
+## 2.11 Admin Page
+
+- Only for admin users. Shows usage graphs (Dash plots):
+  - Number of chat messages vs time, by user.
+  - Number of MCP tool invocations vs time.
+  - Rate limit violations over time.
+  - Possibly other metrics.
+- Admin can force logout (invalidate the token) of any user.
+
+## 2.12 Logging Requirements
+
+- All major events (logins, failed logins, logouts, chat messages, calls to LLM/tools) go to stdout.
+- When the system enters degraded state, log it once.
+- No separate Prometheus or `/metrics` endpoint required.
+
+## 2.13 Retention and Purging
+
+- **30-day retention** from last activity.
+- Purge chat sessions (and messages/tool calls) older than 30 days.
+- Purge can run daily or at startup.
+- When a user deletes a chat session, remove it immediately (hard delete).
+
+## 2.14 Security
+
+- SQLite is persisted to disk (no encryption at rest).
+- All environment secrets (LLM API key, TLS keys, etc.) are from environment variables (not in YAML).
+- mTLS required in production for MCP server connections (self-signed allowed for dev).
+- Expose an unauthenticated `/health` endpoint for liveness checks.
+
+---
+
+# 3. Architecture & Components
+
+## 3.1 High-Level Diagram (Conceptual)
+
+```
+ ┌─────────────────┐
+ │     Browser     │
+ │(User Interface) │
+ └────────┬────────┘
+          │ HTTP / TLS
+          ▼
+ ┌────────────────────────────────┐
+ │   Dash-based Python Web App    │
+ │  (Flask-Session + SQLite)      │
+ │────────────────────────────────│
+ │ • LDAP Auth (ldap3)            │
+ │ • Rate Limiter                 │
+ │ • Pydantic AI w/ OpenAI API    │
+ │ • Tool invocation logic        │
+ └───────────┬───────────┬────────┘
+             │           └───────────────────┐
+             │                               │
+             ▼                               ▼
+ ┌────────────────────────────────┐   ┌────────────────────────────────┐
+ │        MCP Server #1           │   │        MCP Server #N           │
+ │   (Supports HTTP + Bearer)     │   │   (Supports HTTP + Bearer)     │
+ └────────────────────────────────┘   └────────────────────────────────┘
+```
+
+- One or more MCP servers are listed in a YAML config file.
+- The web app sets up a host environment for its internal FastMCP.
+- All user chat → LLM calls or `#tool_name` → triggers HTTP requests to the relevant MCP server(s) with the user’s bearer token.
+
+## 3.2 Data Flow
+
+- **User visits the app** → if not logged in, sees login page.
+- **Login**:
+  - Checks LDAP, verifies user in `authorized_users`.
+  - If user is locked out (due to 3 prior failures and 15m not elapsed), deny login.
+  - On success, create or refresh bearer token, store in SQLite, old token invalidated.
+  - Start session.
+- **Chat**: each user message may call LLM or invoke MCP tools.
+- **Rate limit**: Check per-user. If exceeded → degrade globally, 429 returns for all but login.
+- **Tool usage**:
+  - If tool is in `confirmation_required_tools` and not explicitly invoked (`#tool_name`), prompt user to confirm.
+  - Otherwise, proceed with the invocation.
+  - Automatically forward the bearer token.
+  - On success, store truncated tool output (up to 100k chars).
+- **Usage**: Admin can see usage metrics (no user chat detail) and can force-log-out users.
+
+# 4. Data Handling & Persistence
+
+## 4.1 SQLite Database (Main Tables)
+
+- **users**
+  - `id` (PK)
+  - `username` (unique)
+  - `is_admin` (boolean)
+  - `last_login_at` (datetime)
+  - `lockout_until` (datetime, nullable)
+  - `token` (string, nullable)
+  - `token_issued_at` (datetime, nullable)
+  - `last_activity_at` (datetime, nullable)
+
+- **chat_sessions**
+  - `id` (PK)
+  - `user_id` (FK → users.id)
+  - `created_at` (datetime)
+  - `last_activity_at` (datetime)
+  - `description` (string, nullable)
+
+- **chat_messages**
+  - `id` (PK)
+  - `chat_session_id` (FK → chat_sessions.id)
+  - `user_id` (FK → users.id)
+  - `message_text` (text)
+  - `agent_response_text` (text, nullable)
+  - `created_at` (datetime)
+
+- **tool_invocations**
+  - `id` (PK)
+  - `chat_message_id` (FK → chat_messages.id)
+  - `tool_name` (string)
+  - `server_name` (string)
+  - `was_explicit` (boolean) — true if invoked via `#tool_name`
+  - `user_confirmed` (boolean) — true if user had to confirm
+  - `invocation_time` (datetime)
+  - `output_text` (text, truncated at 100k)
+  - `success` (boolean)
+  - `error_message` (text, if any)
+
+- **admin_actions** (optional or part of general logs)
+  - `id` (PK)
+  - `admin_id` (FK → users.id)
+  - `action_type` (string) — e.g., force_logout
+  - `target_user_id` (FK → users.id, nullable)
+  - `timestamp` (datetime)
+
+(Other tables/columns for logs, session data, or usage stats may also be added as needed.)
+
+## 4.2 Retention Logic
+
+- `chat_sessions`, `chat_messages`, and `tool_invocations` older than 30 days from `last_activity_at` are purged.
+- Purge can run on a schedule (daily) and/or at startup.
+
+---
+
+# 5. Error Handling Strategies
+
+- **Authentication Errors**
+  - Return 401 if invalid credentials or if user not in `authorized_users`.
+  - If lockout is in effect, also deny login for that user.
+
+- **Authorization Errors**
+  - If a user attempts an admin-only endpoint, return 403.
+
+- **Rate Limit Exceeded**
+  - Immediately triggers global degraded state (logged once).
+  - All requests except login return HTTP 429.
+
+- **Concurrency Limit Exceeded**
+  - New chat requests while 3 are already in flight receive an error (e.g., HTTP 429 or 400).
+
+- **Tool Invocation Failure**
+  - Show the user the error from the MCP server; skip subsequent tools in the same message.
+
+- **Tool Output Too Large**
+  - Truncate to 100,000 characters (configurable) on storage.
+
+- **Input Validation**
+  - Message length > 2000 or more than 20 tool tags → reject (400).
+  - Empty/whitespace message → reject (400).
+
+- **Database Issues**
+  - Return 500, log to stdout.
+
+- **Degraded State**
+  - Only login is accessible; all others 429.
+
+---
+
+# 6. Technology Stack
+
+- **Language**: Python 3.12
+- **Web Framework**: Dash 3.x (Flask-based)
+- **Auth**: ldap3 (LDAP in production, mocked in dev)
+- **MCP Integration**: FastMCP 2.0
+- **AI/LLM**: Pydantic AI (OpenAI API)
+- **Database**: SQLite (Flask-SQLAlchemy for sessions, optional for other data)
+- **Session Management**: Flask-Session, storing sessions in SQLite
+- **Containerization**: Docker (and optional Docker Swarm)
+- **TLS/HTTPS**:
+  - mTLS with certs in production
+  - Self-signed/no mTLS in dev
+- **Frontend UI**: Dash + various styling (Bootstrap, Mantine, Tailwind)
+- **Logging**: to stdout
+
+---
+
+# 7. Deployment Details
+
+- A Docker container with environment variables for LLM API keys, TLS keys, etc.
+- A `run.sh` script in the `chat-agent` directory for spinning up local development quickly.
+- A YAML configuration file in `chat-agent` containing:
+  - `authorized_users` (list)
+  - `admin_users` (list)
+  - `mcp_servers` (list of server definitions)
+  - `confirmation_required_tools` (list)
+  - `retention_days` (default: 30)
+  - Others as needed
+- The application fails fast if YAML config is missing or invalid.
+- On startup, attempts to connect to each MCP server and logs failures (does not abort).
+
+---
+
+# 8. Testing Plan
+
+## 8.1 Unit Tests
+
+- **Authentication Logic**
+  - Test valid login, invalid, lockout after 3 fails.
+  - Mock LDAP for local dev.
+
+- **Rate Limiter**
+  - Confirm 50 operations in 60 seconds is enforced.
+  - Confirm single violation triggers global degrade.
+
+- **Tool Invocation**
+  - `#tool_name` usage vs. agent-initiated requiring user confirmation if listed.
+
+- **Database Models**
+  - Write/read cycles for user tokens, chat messages, and tool outputs.
+  - Purge for stale data.
+
+## 8.2 Integration Tests
+
+- End-to-end flow: login → create chat → call LLM → store history → logout.
+- Forward bearer token to mock MCP server → check validity.
+- Multi-tool invocation with a failure.
+- Over-limit usage → triggers degraded state.
+
+## 8.3 UI / Functional Tests
+
+- Login form tests.
+- Chat page: input constraints (2000 chars, etc.).
+- Session creation/rename/delete.
+- Ensure concurrency limit is enforced.
+- When in degraded state, only login is accessible.
+
+## 8.4 Security Tests
+
+- Lockout after repeated login fails.
+- TLS in production.
+- Token invalidation on logout.
+- Check environment variables are not leaked in logs.
+
+
