@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 from typing import Tuple
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -28,6 +28,18 @@ def init_db(database_url: str = "sqlite:///chat-agent.db") -> Tuple[Engine, sess
     logger.debug("Initializing database", extra={"database_url": database_url})
 
     engine = create_engine(database_url, echo=False, future=True)
+
+    # Ensure SQLite enforces foreign key constraints (needed for ON DELETE CASCADE)
+    if database_url.startswith("sqlite"):
+        @event.listens_for(engine, "connect")
+        def _set_sqlite_pragma(dbapi_connection, connection_record):  # type: ignore[no-redef]
+            try:
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA foreign_keys=ON")
+                cursor.close()
+            except Exception:
+                # Best-effort; tests will reveal if this fails
+                pass
 
     # Create all tables
     Base.metadata.create_all(engine)

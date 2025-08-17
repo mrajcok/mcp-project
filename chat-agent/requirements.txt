@@ -10,3 +10,9 @@ SQLAlchemy>=2.0
 ldap3>=2.9
 pydantic>=2.6
 pytest>=8.0
+
+# LLM integration
+pydantic-ai>=0.7
+
+# MCP client
+fastmcp>=2.0

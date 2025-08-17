@@ -247,7 +247,7 @@ The project must use a Python 3.12 virtual environment and have the following:
 ### 9) Rate Limiting & Degraded State
 
 ```text
-# Prompt (9A) Test: Rate Limit & Degraded
+# Prompt (9A) Test: Rate Limit & Degraded [COMPLETED]
 
 **Objective**: Verify that we track user operations per minute.
 **We expect**:
@@ -257,7 +257,7 @@ The project must use a Python 3.12 virtual environment and have the following:
 ```
 
 ```text
-# Prompt (9B) Implementation: Rate Limit & Degraded
+# Prompt (9B) Implementation: Rate Limit & Degraded [COMPLETED]
 
 **Objective**: Implement logic:
 1. Maintain an in-memory or DB-based count of ops per user per 60s window.
@@ -271,7 +271,7 @@ The project must use a Python 3.12 virtual environment and have the following:
 ### 10) Chat Sessions & Messages
 
 ```text
-# Prompt (10A) Test: Chat Sessions & Messages
+# Prompt (10A) Test: Chat Sessions & Messages [COMPLETED]
 
 **Objective**: Verify we can:
 1. Create a chat session.
@@ -286,7 +286,7 @@ The project must use a Python 3.12 virtual environment and have the following:
 ```
 
 ```text
-# Prompt (10B) Implementation: Chat Sessions & Messages
+# Prompt (10B) Implementation: Chat Sessions & Messages [COMPLETED]
 
 **Objective**: Implement the code so the test passes:
 1. Define models for "chat_sessions" and "chat_messages" as defined in spec.md.
@@ -300,7 +300,7 @@ The project must use a Python 3.12 virtual environment and have the following:
 ### 11) Tool Invocation & Confirmation
 
 ```text
-# Prompt (11A) Test: Tool Invocation
+# Prompt (11A) Test: Tool Invocation [COMPLETED]
 
 **Objective**: Test:
 1. Recognizing `#tool_name` in user messages → no confirmation needed.
@@ -315,7 +315,7 @@ The project must use a Python 3.12 virtual environment and have the following:
 ```
 
 ```text
-# Prompt (11B) Implementation: Tool Invocation
+# Prompt (11B) Implementation: Tool Invocation [COMPLETED]
 
 **Objective**: Implement tool-invocation logic:
 1. Parse user messages for `#tool_name`.
@@ -330,7 +330,7 @@ The project must use a Python 3.12 virtual environment and have the following:
 ### 12) LLM Integration
 
 ```text
-# Prompt (12A) Test: LLM Integration
+# Prompt (12A) Test: LLM Integration [COMPLETED]
 
 **Objective**: Test a function "run_llm(user_input)" that:
 1. Calls OpenAI (mock in test).
@@ -344,7 +344,7 @@ The project must use a Python 3.12 virtual environment and have the following:
 ```
 
 ```text
-# Prompt (12B) Implementation: LLM Integration
+# Prompt (12B) Implementation: LLM Integration [COMPLETED]
 
 **Objective**: Implement "run_llm(user_input)":
 1. Use Pydantic AI with OpenAI API.
@@ -360,24 +360,32 @@ The project must use a Python 3.12 virtual environment and have the following:
 ```text
 # Prompt (13A) Test: Dash UI
 
-**Objective**: Use an end-to-end or integration style test with a tool like Selenium or Cypress:
+**Objective**: Use an end-to-end or integration style test with a tool like Playwright or Cypress:
 1. Ensure the main page loads.
 2. Validate the nav bar has "Chat Agent," "History," "Admin" (if admin), "Username," "Logout."
-3. Ensure there's an input field for messages and an area to display the output.
+3. Ensure the main page has the following layout
+   - Chat input box at the top.
+   - Below it, the AI response area (interleaved user messages and agent responses).
+   - Left side: a panel listing the MCP servers, connection status, and available tools.
 
 **We expect**:
 - On visiting the root, if not authenticated, the user is redirected to a login page.
-- If logged in, the chat page is accessible.
+- If logged in, the main page is displayed.
 ```
 
 ```text
 # Prompt (13B) Implementation: Dash UI
 
 **Objective**: Implement the basic Dash application:
-1. Create "app.py" or "server.py" with the Dash instance.
-2. Define the layout with a nav bar, chat page, history page, admin page placeholder.
-3. Handle login flow (maybe via a separate Flask route or a Dash page).
-4. Host on the default port (e.g., 8050).
+1. Create "app.py" or "server.py" with the Dash instance and pydantic AI.
+2. Pydantic AI should connect to the configured MCP servers and determine which MCP server tools are available.
+3. Define the layout with a nav bar, chat page, history page, admin page placeholder.
+   The main page should have the following layout
+   - Chat input box at the top.
+   - Below it, the AI response area (interleaved user messages and agent responses).
+   - Left side: a panel listing the MCP servers, connection status, and available tools.
+4. Handle login flow (maybe via a separate Flask route or a Dash page).
+5. Host on the default port (e.g., 8050).
 ```
 
 ---
@@ -443,3 +451,8 @@ The project must use a Python 3.12 virtual environment and have the following:
 The above series of prompts (two per step) should guide a code-generation LLM to develop this system step by step, using **Test-Driven Development**. Each step builds upon the previous ones, ensuring no orphan code or incomplete integrations. By following this plan, you can grow the project **incrementally**, verifying correctness at each stage and minimizing surprises. 
 
 This structure also encourages code reviews and refactoring between steps, giving you a safe, test-backed foundation for the entire AI agent application.
+
+## Future capabilities
+- infinite scrolling for long chat session histories
+- improved message search and filtering
+- Stream AI responses to UI (http streaming) and show incremental updates.

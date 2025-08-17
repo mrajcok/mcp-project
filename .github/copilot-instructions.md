@@ -3,13 +3,11 @@ Be somewhat terse in what you tell me in the chat window, since
 I want to minimize how many AI model output tokens I use.
 
 # Development Guidelines
-- **Async Programming**: All MCP operations and agent interactions should be async
 - **Error Handling**: Use proper logging
 - **Type Safety**: Use Pydantic models for all data structures
 
 # Journaling
-If you have journaling capabilities, use them to document your interactions with me
-and the codebase.
+If you have journaling capabilities, use them to document your interactions with me and the codebase.
 
 # Writing code
 
