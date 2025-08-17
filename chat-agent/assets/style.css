@@ -1,0 +1,194 @@
+/* ABOUT-ME: Global styles for the chat-agent Dash app. */
+
+/* Theme variables are applied on #app-root via .theme-light / .theme-dark */
+.theme-light {
+  --bg: #f5f7fa;
+  --card-bg: #ffffff;
+  --fg: #1f2330;
+  --brand: #0b5fff;
+  --muted: #6c7a89;
+  --danger: #a33;
+  --navbar-bg: #0b1220;
+  --navbar-fg: #ffffff;
+  --input-bg: #f3f4f6;
+  --input-fg: #1f2330;
+  --input-border: #cbd5e1;
+  --input-placeholder: #6c7a89;
+}
+
+.theme-dark {
+  --bg: #0b1220;
+  --card-bg: #111827;
+  --fg: #e5e7eb;
+  --brand: #3b82f6;
+  --muted: #9aa4b2;
+  --danger: #fca5a5;
+  --navbar-bg: #111827; /* distinct dark navbar */
+  --navbar-fg: #e5e7eb;
+  --input-bg: #1f2937;
+  --input-fg: #e5e7eb;
+  --input-border: #334155;
+  --input-placeholder: #9aa4b2;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+
+#app-root { /* Theme scope root */
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100vh;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: var(--navbar-bg);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+}
+
+.navbar .brand {
+  font-weight: 700;
+  color: var(--navbar-fg);
+  font-size: 1.05rem;
+}
+
+.navbar a { color: var(--navbar-fg); text-decoration: none; }
+.navbar .username { color: var(--navbar-fg); margin-left: auto; margin-right: 8px; }
+
+.brand-logo {
+  height: 32px;
+  width: auto;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.navbar {
+  box-shadow: 0 4px 12px rgba(2,6,23,0.12); /* subtle elevation */
+}
+
+/* Reserve top space for fixed navbar and center card */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 0;
+  box-sizing: border-box;
+  padding-top: 72px; /* reserve space for fixed navbar */
+}
+
+.content { padding-top: 72px; }
+
+/* Logged-in shell base container */
+.app-shell {
+  min-height: 100vh;
+}
+.content { background: var(--bg); }
+
+.login-card-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: calc(100vh - 72px);
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 15em;
+  padding: 24px;
+  border-radius: 8px;
+  background: var(--card-bg);
+  box-shadow: 0 6px 18px rgba(23, 43, 77, 0.08);
+  box-sizing: border-box;
+}
+
+.login-title {
+  margin: 0 0 10px 0;
+  text-align: center;
+  font-size: 1.25rem;
+  color: var(--fg);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--input-fg);
+  box-sizing: border-box;
+}
+
+.input::placeholder { color: var(--input-placeholder); }
+.input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 2px rgba(59,130,246,.25); }
+
+.label {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  background: var(--brand);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.login-error {
+  color: var(--danger);
+  min-height: 1.2em;
+}
+
+.hidden { display: none !important; }
+
+.icon-button {
+  background: transparent;
+  color: var(--navbar-fg);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  height: 32px;
+  width: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Main panels adapt to theme */
+#servers-panel, .servers-panel {
+  background: var(--card-bg);
+  border-right: 1px solid rgba(0,0,0,0.06);
+}
+.chat-main {
+  background: var(--card-bg);
+}
+.chat-input-row {
+  background: var(--card-bg);
+  border-top: 1px solid rgba(0,0,0,0.06);
+  padding: 8px;
+}
+.chat-messages { padding: 12px; }

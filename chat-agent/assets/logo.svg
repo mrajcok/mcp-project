@@ -1,0 +1,5 @@
+<!-- ABOUT-ME: Simple SVG logo for Chat Agent -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Chat Agent logo">
+  <rect width="64" height="64" rx="12" fill="#0b5fff" />
+  <path d="M20 28c0-6.627 5.373-12 12-12s12 5.373 12 12-5.373 12-12 12c-1.657 0-3.24-.327-4.643-.92L18 44l6.92-9.357C20.327 32.24 20 30.657 20 28z" fill="#fff"/>
+</svg>
